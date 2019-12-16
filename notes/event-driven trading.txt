@@ -1,0 +1,46 @@
+event-driven trading
+
+what are the events and tasks?
+(maybe we can re-define events as states in a finite state machine)
+
+event: price forecast is in favor
+    - price forecast is in favor when the forecast price is moving away from its "implicit neutral" price
+    - this is a strong strategy because prices that diverge from their implicit price have a strong tendency to revert eventually
+    - the implicit price is dependent on the relationships of the asset being forecast with other assets
+
+event: set when the forecast of all relevant assets are in favor
+    - we want all three assets to move favorably -- in which case we can declare the trading condition to be SET (perhaps using a flag)
+    - when this condition is set, we place a trade immediately
+    - we only need to forecast for placing limit orders (market orders don't need it)
+
+event: set when we begin placing the arbitrage trades
+    - place three trades in sequence
+    - for high-volume assets, we place limit orders (wait for someone in the market to take the order) (better prices)
+    - for low-volume assets, it is better to place market orders (immediate order)
+    - BNBUSDT - high volume, place only limit orders
+    - BCCBNB - low volume, place only market orders
+    - BCCUSDT - high volume, place only limit orders
+
+    - trade direction / inversion
+    - the system determines whether or not we have to take the multiplicative inverse of the asset's price
+    - if invert=True, then we do the opposite of (BUY/SELL) to the asset
+    - BNBUSDT - invert
+    - BCCBNB - invert
+    - BCCUSDT - don't invert
+
+    - limit order vs market order
+    - when we create a limit order, we make an order of the best price in our desired trading direction
+    - for market orders, we accept the best existing price in that asset's limit order book
+    - this may cause some confusion because whether we want a limit/market order determines the direction for that asset's trade
+
+    - we define the 3 sequential trades as Trade A, Trade B, and Trade C
+    - we define the 3 assets as asset A, asset B, and asset C
+
+event: trade timeout -- roll back any incomplete trades
+    - if any limit order does not get fulfilled within a specified timeout period, we should cancel the limit order and roll back any trades that have been made so far (so we should be recording the price and quantity of those trades)
+
+event: all 3 sequential trades complete
+    - all 3 trades are complete and fulfilled
+    - we log the total profit from the 3 trades into a file
+    - record the time the trades were completed - we use this to calculate a "debounce" signal (time since last trade) so we can avoid placing too many trades in rapid succession
+

@@ -1,0 +1,48 @@
+(best_bid_a)^-1 * (best_ask_b)^-1 * (best_ask_c)
+
+The implied arbitrage profit is calculated by the above equation.
+
+The coefficient that represents the price of the associated asset is calculated with two factors in mind:
+
+1. Market order or limit order
+    The choice of market order or limit order is dependent on our conditions for execution time and execution price. Limit orders give us the advantage of execution price, but we can shorten the time to fill an order by forecasting the price movement direction, placing limit orders only when the price is moving in a favorable direction.
+
+    - Market orders are placed immediately, providing the advantage of execution time, but at the cost of taking the price of the best willing buyer or seller from the order book. You have no control of the price, but at least you know what it is.
+        buy @ best ask, filled immediately
+        sell @ best bid, filled immediately
+
+    - Limit orders execute only when the price is within a conditional limit. You control the price, but you do not know if the order will be filled in a timely manner or even at all. The limit order can be canceled at will. One opportunity arises where we can calculate the best prices to place a limit order from a price forecast from a neural network. However, the heuristic we are using for the first revision of the system is to place buy orders at the current best bid price, and alternatively place sell orders at the current best ask price.
+        buy @ best bid (or any opportunistic price)
+        sell @ best ask (or any opportunistic price)
+
+2. Multiplicative inverse
+    - The order of the two assets in the currency pair name determine which asset gets bought and sold. For the coefficient, we use the multiplicative inverse of the price if the first listed asset is the one we want to buy. If the second listed asset is the one we want to buy, we do not invert the coefficient.
+        BNBUSDT ; buy BNB --> invert
+        BCCBNB ; buy BCC --> invert
+        BCCUSDT ; sell BCC -- don't invert
+
+Full calculation for USDT->BNB->BCC->USDT :
+    BNBUSDT ; buy BNB --> invert
+        --limit order -> best bid   # this pair has high trading volume, forecast the price
+    BCCBNB ; buy BCC --> invert
+        --market order -> best ask  # this pair has low trading volume, for execution time, we use market order
+    BCCUSDT ; sell BCC -- don't invert
+        --limit order -> best ask   # this pair has high trading volume, forecast the price
+
+    (1.0/BNBUSDT.best_bid) * (1.0/BCCBNB.best_ask) * (BCCUSDT.best_ask)
+
+    Let's design a way to compute this in Python:
+
+    # the current equation is difficult to implement with a set of robust functions...
+    (1.0/BNBUSDT.best_bid) * (1.0/BCCBNB.best_ask) * (BCCUSDT.best_ask)
+
+    # we can encapsulate the bid/ask direction in the best_price() function
+    = (1.0/BNBUSDT.best_price()) * (1.0/BCCBNB.best_ask.best_price()) * (BCCUSDT.best_price())
+
+    # further, we can encapsulate the inversion in the best_price() function
+    = BNBUSDT.best_price() * BCCBNB.best_price() * BCCUSDT.best_price()
+
+    # even further, we can encapsulate the trading pairs as their own objects
+    = pair_a.best_price() * pair_b.best_price() * pair_c.best_price()
+
+
